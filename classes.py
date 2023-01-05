@@ -61,7 +61,7 @@ class Ship:
     def __init__(self, position, direction, length):
         try:
             if len(position) != 2:
-                raise IncorrectPositionError('More than 2 dimensions given')
+                raise IncorrectPositionError('More than 2, or 1 dimension given')
         except TypeError:
             raise IncorrectPositionError('Only one dimension given')
         self._position = position
@@ -158,24 +158,6 @@ class BattleshipBoard:
     def size(self):
         return self._size
 
-    # def set_board(self, new_size, new_board):
-    #     if len(new_board) != new_size:
-    #         message = f'Amount of rows needs to be {new_size}'
-    #         raise WrongAmountOfRowsError(message)
-    #     for row in new_board:
-    #         if len(row) != new_size:
-    #             message = f"At least one row doesn't have {new_size} elements"
-    #             raise WrongAmountOfSquaresInRowsError(message)
-    #         for square in row:
-    #             if len(square) != 1:
-    #                 message = 'Square can only be a single symbol'
-    #                 raise MoreThanOneSymbolInSquareError(message)
-    #             elif not correct_symbol_square(square):
-    #                 message = 'Forbidden symbol in one of the squares'
-    #                 raise WrongIndicationOfSquare(message)
-    #     self._board = new_board
-    #     self._size = new_size
-
     def get_square(self, position):
         """
         Returns square in given position
@@ -206,6 +188,16 @@ class BattleshipBoard:
             message = f'There is no such position in {size}x{size} board'
             raise PositionOutOfBoardError(message)
 
+    def position_in_board(self, position):
+        """
+        Checks if position is in board
+        """
+        row, column = position
+        size = self._size
+        if row < 0 or row > size - 1 or column < 0 or column > size - 1:
+            return False
+        return True
+
     def has_ship(self):
         """
         Checks if there is any ship in board
@@ -221,8 +213,8 @@ class BattleshipBoard:
         Checks if there is a ship around given point including diagonally
         """
         row, column = position
-        if row > 9 or column > 9 or row < 0 or column < 0:
-            size = self._size
+        size = self._size
+        if row > size - 1 or column > size - 1 or row < 0 or column < 0:
             message = f'There is no such position in {size}x{size} board'
             raise PositionOutOfBoardError(message)
         for row_difference in range(-1, 2):
@@ -261,13 +253,58 @@ class BattleshipBoard:
             message = "Ship doesn't fit in board or interferes with other ship"
             raise CanNotPlaceShipError(message)
 
+    def set_if_in_board(self, position, indication):
+        row, column = position
+        if row >= 0 and column >= 0 and row < self.size() and column < self.size():
+            self.set_square(position, indication)
+
+    def set_squares_around_ship(self, ship, indication):
+        position = ship.position()
+        row, column = position
+        direction = ship.direction()
+        length = ship.length()
+        if direction == 's':
+            self.set_if_in_board((row, column + 1), indication)
+            self.set_if_in_board((row - 1, column + 1), indication)
+            self.set_if_in_board((row - 1, column), indication)
+            self.set_if_in_board((row - 1, column - 1), indication)
+            self.set_if_in_board((row, column - 1), indication)
+            for number in range(1, length - 1):
+                self.set_if_in_board((row + number, column + 1), indication)
+                self.set_if_in_board((row + number, column - 1), indication)
+            self.set_if_in_board((row + length - 1, column + 1), indication)
+            self.set_if_in_board((row + length, column + 1), indication)
+            self.set_if_in_board((row + length, column), indication)
+            self.set_if_in_board((row + length, column - 1), indication)
+            self.set_if_in_board((row + length - 1, column - 1), indication)
+        else:
+            self.set_if_in_board((row + 1, column), indication)
+            self.set_if_in_board((row + 1, column - 1), indication)
+            self.set_if_in_board((row, column - 1), indication)
+            self.set_if_in_board((row - 1, column - 1), indication)
+            self.set_if_in_board((row - 1, column), indication)
+            for number in range(1, length - 1):
+                self.set_if_in_board((row + 1, column + number), indication)
+                self.set_if_in_board((row - 1, column + number), indication)
+            self.set_if_in_board((row + 1, column + length - 1), indication)
+            self.set_if_in_board((row + 1, column + length), indication)
+            self.set_if_in_board((row, column + length), indication)
+            self.set_if_in_board((row - 1, column + length), indication)
+            self.set_if_in_board((row - 1, column + length - 1), indication)
+
     def __str__(self):
-        result = ' '
-        for number in range(self._size):
-            result = result + ' ' + str(number)
+        """
+        Returns string representation of the board
+        """
+        result = '  '
+        for number in range(ord('A'), ord('K')):
+            result = result + ' ' + chr(number)
         result = result + '\n'
         for index, row in enumerate(self._board):
-            result = result + str(index)
+            if index == 9:
+                result = result + str(index + 1)
+            else:
+                result = result + ' ' + str(index + 1)
             for square in row:
                 result = result + ' ' + square
             result = result + '\n'
@@ -275,9 +312,15 @@ class BattleshipBoard:
 
 
 class Player():
-    def __init__(self):
-        self._player_board = BattleshipBoard()
-        self._player_guess_board = BattleshipBoard()
+    def __init__(self, board_size):
+        self._player_board = BattleshipBoard(board_size)
+        self._player_guess_board = BattleshipBoard(board_size)
+
+    def player_board(self):
+        return self._player_board
+
+    def player_guess_board(self):
+        return self._player_guess_board
 
     def guess(self, computer_board, position):
         square = computer_board.get_square(position)
@@ -294,31 +337,631 @@ class Player():
         self._player_board.place_ship(ship)
 
 
-def generate_ship(length):
-    row = randint(0, 9)
-    column = randint(0, 9)
+def generate_position(board_size):
+    row = randint(0, board_size - 1)
+    column = randint(0, board_size - 1)
+    return (row, column)
+
+
+def generate_ship(length, board_size):
+    position = generate_position(board_size)
     condition = randint(0, 1)
     if condition == 0:
         direction = 's'
     else:
         direction = 'e'
-    ship = Ship((row, column), direction, length)
+    ship = Ship(position, direction, length)
     return ship
 
 
-class ComputerPlayer():
-    def __init__(self):
-        self._computer_board = BattleshipBoard()
-        self._last_guess = None
-
-    def guess(self, player_board, position=None):
-        if not position:
-            pass
+def remove_ship_length_from_list_of_lengths(ship_length, list_of_ship_lengths):
+    result = []
+    found_one = False
+    for length in list_of_ship_lengths:
+        if length != ship_length:
+            result.append(length)
+        elif found_one:
+            result.append(length)
         else:
-            square = player_board.get_square(position)
-            if square == 'O':
-                player_board.set_square(position, 'X')
-                self._computer_board
+            found_one = True
+    return result
 
-    def place_ships(self, list_of_ships=None):
-        pass
+
+class ComputerPlayer():
+    def __init__(self, board_size, list_of_ships_length):
+        self._computer_board = BattleshipBoard(board_size)
+        list_of_ships_length.sort()
+        self._list_of_ship_lengths = list_of_ships_length
+        self._current_max_length = max(list_of_ships_length)
+        self._first_ship_hit = None
+        self._target = None
+        self._direction_of_guessing = None
+        self._targetted_ship_first_position = None
+        self._targetted_ship_length = None
+        self._targetted_ship_direction = None
+
+    def computer_board(self):
+        return self._computer_board
+
+    def reset_targetted_ship(self):
+        self._first_ship_hit = None
+        self._target = None
+        self._direction_of_guessing = None
+        self._targetted_ship_first_position = None
+        self._targetted_ship_length = None
+        self._targetted_ship_direction = None
+
+    def whole_ship_found(self, player_board):
+        """
+        What to do when we found whole ship
+        """
+        position = self._targetted_ship_first_position
+        direction = self._targetted_ship_direction
+        length = self._targetted_ship_length
+        ship = Ship(position, direction, length)
+        player_board.set_squares_around_ship(ship, '~')
+        self._list_of_ship_lengths = remove_ship_length_from_list_of_lengths(length, self._list_of_ship_lengths)
+        if self._list_of_ship_lengths:
+            self._current_max_length = max(self._list_of_ship_lengths)
+
+    def north_targetted_ship(self, player_board):
+        """
+        What to do when:
+        - we know that ship is in vertical position
+        - we are searching to the north
+        - square to the north ,target is 'O' - ship
+        """
+        first_hit_row, first_hit_column = self._first_ship_hit
+        row, column = self._target
+        player_board.set_square(self._target, 'X')
+        self._targetted_ship_first_position = self._target
+        self._targetted_ship_length += 1
+        if self._targetted_ship_length >= self._current_max_length:
+            self.whole_ship_found(player_board)
+            self.reset_targetted_ship()
+            new_list_of_ship_lengths = self._list_of_ship_lengths[:-1]
+            self._list_of_ship_lengths = new_list_of_ship_lengths
+        elif self._computer_board.position_in_board((row - 1, column)):
+            self._target = (row - 1, column)
+        elif self._computer_board.position_in_board((first_hit_row + 1, first_hit_column)):
+            self._direction_of_guessing = 's'
+            self._target = (first_hit_row + 1, first_hit_column)
+        else:
+            self.whole_ship_found(player_board)
+            self.reset_targetted_ship()
+
+    def north_targetted_sea(self, player_board):
+        """
+        What to do when:
+        - we know that ship is in vertical position
+        - we are searching to the north
+        - square to the north, target is ' ' - sea
+        """
+        first_hit_row, first_hit_column = self._first_ship_hit
+        row, column = self._target
+        player_board.set_square(self._target, '~')
+        if self._computer_board.position_in_board((first_hit_row + 1, first_hit_column)):
+            self._direction_of_guessing = 's'
+            self._target = (first_hit_row + 1, first_hit_column)
+        else:
+            self.whole_ship_found(player_board)
+            self.reset_targetted_ship()
+
+    def north_targetted_attacked_sea(self, player_board):
+        """
+        What to do when:
+        - we know that ship is in vertical position
+        - we are searching to the north
+        - square to the north, target is '~' - attacked_sea
+        """
+        first_hit_row, first_hit_column = self._first_ship_hit
+        row, column = self._target
+        player_board.set_square(self._target, '~')
+        if self._computer_board.position_in_board((first_hit_row + 1, first_hit_column)):
+            self._direction_of_guessing = 's'
+            self._target = (first_hit_row + 1, first_hit_column)
+            square = player_board.get_square((first_hit_row + 1, first_hit_column))
+            if square == 'O' or square == 'X':
+                self._targetted_ship_direction = 's'
+                if player_board.get_square(self._target) == 'O':
+                    self.south_targetted_ship(player_board)
+                elif player_board.get_square(self._target) == ' ':
+                    self.south_targetted_sea(player_board)
+                else:
+                    self.south_targetted_attacked_sea(player_board)
+            elif square == ' ':
+                self.south_no_ship(player_board)
+            else:
+                self.south_no_ship_checked(player_board)
+        else:
+            self.whole_ship_found(player_board)
+            self.reset_targetted_ship()
+            self.guess(player_board)
+
+    def north_no_ship(self, player_board):
+        """
+        What to do when:
+        - we don't know that ship is in vertical position
+        - we are searching to the north
+        - first square to the north, target is ' ' - sea
+        """
+        first_hit_row, first_hit_column = self._first_ship_hit
+        player_board.set_square(self._target, '~')
+        if player_board.position_in_board((first_hit_row, first_hit_column - 1)):
+            self._direction_of_guessing = 'w'
+            self._target = (first_hit_row, first_hit_column - 1)
+        elif player_board.position_in_board((first_hit_row + 1, first_hit_column)):
+            self._direction_of_guessing = 's'
+            self._target = (first_hit_row + 1, first_hit_column)
+        else:
+            self._direction_of_guessing = 'e'
+            self._target = (first_hit_row, first_hit_column + 1)
+
+    def north_no_ship_checked(self, player_board):
+        """
+        What to do when:
+        - we don't know that ship is in vertical position
+        - we are searching to the north
+        - first square to the north, target is '~' - attacked_sea
+        """
+        first_hit_row, first_hit_column = self._first_ship_hit
+        player_board.set_square(self._target, '~')
+        if player_board.position_in_board((first_hit_row, first_hit_column - 1)):
+            self._direction_of_guessing = 'w'
+            self._target = (first_hit_row, first_hit_column - 1)
+            square = player_board.get_square((first_hit_row, first_hit_column - 1))
+            if square == 'O' or square == 'X':
+                self._targetted_ship_direction = 'e'
+                if player_board.get_square(self._target) == 'O':
+                    self.west_targetted_ship(player_board)
+                elif player_board.get_square(self._target) == ' ':
+                    self.west_targetted_sea(player_board)
+                else:
+                    self.west_targetted_attacked_sea(player_board)
+            elif square == ' ':
+                self.west_no_ship(player_board)
+            else:
+                self.west_no_ship_checked(player_board)
+        elif player_board.position_in_board((first_hit_row + 1, first_hit_column)):
+            self._direction_of_guessing = 's'
+            self._target = (first_hit_row + 1, first_hit_column)
+            square = player_board.get_square((first_hit_row + 1, first_hit_column))
+            if square == 'O' or square == 'X':
+                self._targetted_ship_direction = 's'
+                if player_board.get_square(self._target) == 'O':
+                    self.south_targetted_ship(player_board)
+                elif player_board.get_square(self._target) == ' ':
+                    self.south_targetted_sea(player_board)
+                else:
+                    self.south_targetted_attacked_sea(player_board)
+            elif square == ' ':
+                self.south_no_ship(player_board)
+            else:
+                self.south_no_ship_checked(player_board)
+        else:
+            self._direction_of_guessing = 'e'
+            self._target = (first_hit_row, first_hit_column + 1)
+            square = player_board.get_square((first_hit_row, first_hit_column + 1))
+            if square == 'O' or square == 'X':
+                self._targetted_ship_direction = 'e'
+                if player_board.get_square(self._target) == 'O':
+                    self.east_targetted_ship(player_board)
+                elif player_board.get_square(self._target) == ' ':
+                    self.east_targetted_sea(player_board)
+                else:
+                    self.east_targetted_attacked_sea(player_board)
+            elif square == ' ':
+                self.east_no_ship(player_board)
+            else:
+                self.east_no_ship_checked(player_board)
+
+    def west_targetted_ship(self, player_board):
+        """
+        What to do when:
+        - we know that ship is in horizontal position
+        - we are searching to the west
+        - square to the west ,target is 'O' - ship
+        """
+        first_hit_row, first_hit_column = self._first_ship_hit
+        row, column = self._target
+        player_board.set_square(self._target, 'X')
+        self._targetted_ship_length += 1
+        self._targetted_ship_first_position = self._target
+        if self._targetted_ship_length >= self._current_max_length:
+            self.whole_ship_found(player_board)
+            self.reset_targetted_ship()
+            new_list_of_ship_lengths = self._list_of_ship_lengths[:-1]
+            self._list_of_ship_lengths = new_list_of_ship_lengths
+        elif self._computer_board.position_in_board((row, column - 1)):
+            self._target = (row, column - 1)
+        elif self._computer_board.position_in_board((first_hit_row, first_hit_column + 1)):
+            self._direction_of_guessing = 'e'
+            self._target = (first_hit_row, first_hit_column + 1)
+        else:
+            self.whole_ship_found(player_board)
+            self.reset_targetted_ship()
+
+    def west_targetted_sea(self, player_board):
+        """
+        What to do when:
+        - we know that ship is in horizontal position
+        - we are searching to the west
+        - square to the west, target is ' ' - sea
+        """
+        first_hit_row, first_hit_column = self._first_ship_hit
+        row, column = self._target
+        player_board.set_square(self._target, '~')
+        if self._computer_board.position_in_board((first_hit_row, first_hit_column + 1)):
+            self._direction_of_guessing = 'e'
+            self._target = (first_hit_row, first_hit_column + 1)
+        else:
+            self.whole_ship_found(player_board)
+            self.reset_targetted_ship()
+
+    def west_targetted_attacked_sea(self, player_board):
+        """
+        What to do when:
+        - we know that ship is in horizontal position
+        - we are searching to the west
+        - square to the west, target is '~' - attacked_sea
+        """
+        first_hit_row, first_hit_column = self._first_ship_hit
+        row, column = self._target
+        player_board.set_square(self._target, '~')
+        self._targetted_ship_first_position = (row, column + 1)
+        if self._computer_board.position_in_board((first_hit_row, first_hit_column + 1)):
+            self._direction_of_guessing = 'e'
+            self._target = (first_hit_row, first_hit_column + 1)
+            square = player_board.get_square((first_hit_row, first_hit_column + 1))
+            if square == 'O' or square == 'X':
+                self._targetted_ship_direction = 'e'
+                if player_board.get_square(self._target) == 'O':
+                    self.east_targetted_ship(player_board)
+                elif player_board.get_square(self._target) == ' ':
+                    self.east_targetted_sea(player_board)
+                else:
+                    self.east_targetted_attacked_sea(player_board)
+            elif square == ' ':
+                self.east_no_ship(player_board)
+            else:
+                self.east_no_ship_checked(player_board)
+        else:
+            self.whole_ship_found(player_board)
+            self.reset_targetted_ship()
+            self.guess(player_board)
+
+    def west_no_ship(self, player_board):
+        """
+        What to do when:
+        - we don't know that ship is in horizontal position
+        - we are searching to the west
+        - first square to the west, target is ' ' - sea
+        """
+        first_hit_row, first_hit_column = self._first_ship_hit
+        player_board.set_square(self._target, '~')
+        if player_board.position_in_board((first_hit_row + 1, first_hit_column)):
+            self._direction_of_guessing = 's'
+            self._target = (first_hit_row + 1, first_hit_column)
+        elif player_board.position_in_board((first_hit_row, first_hit_column + 1)):
+            self._direction_of_guessing = 'e'
+            self._target = (first_hit_row, first_hit_column + 1)
+        else:
+            self.whole_ship_found(player_board)
+            self.reset_targetted_ship()
+
+    def west_no_ship_checked(self, player_board):
+        """
+        What to do when:
+        - we don't know that ship is in horizontal position
+        - we are searching to the west
+        - first square to the west, target is '~' - attacked_sea
+        """
+        first_hit_row, first_hit_column = self._first_ship_hit
+        player_board.set_square(self._target, '~')
+        if player_board.position_in_board((first_hit_row + 1, first_hit_column)):
+            self._direction_of_guessing = 's'
+            self._target = (first_hit_row + 1, first_hit_column)
+            square = player_board.get_square((first_hit_row + 1, first_hit_column))
+            if square == 'O' or square == 'X':
+                self._targetted_ship_direction = 's'
+                if player_board.get_square(self._target) == 'O':
+                    self.south_targetted_ship(player_board)
+                elif player_board.get_square(self._target) == ' ':
+                    self.south_targetted_sea(player_board)
+                else:
+                    self.south_targetted_attacked_sea(player_board)
+            elif square == ' ':
+                self.south_no_ship(player_board)
+            else:
+                self.south_no_ship_checked(player_board)
+        elif player_board.position_in_board((first_hit_row, first_hit_column + 1)):
+            self._direction_of_guessing = 'e'
+            self._target = (first_hit_row, first_hit_column + 1)
+            square = player_board.get_square((first_hit_row, first_hit_column + 1))
+            if square == 'O' or square == 'X':
+                self._targetted_ship_direction = 'e'
+                if player_board.get_square(self._target) == 'O':
+                    self.east_targetted_ship(player_board)
+                elif player_board.get_square(self._target) == ' ':
+                    self.east_targetted_sea(player_board)
+                else:
+                    self.east_targetted_attacked_sea(player_board)
+            elif square == ' ':
+                self.east_no_ship(player_board)
+            else:
+                self.east_no_ship_checked(player_board)
+        else:
+            self.whole_ship_found(player_board)
+            self.reset_targetted_ship()
+            self.guess(player_board)
+
+    def south_targetted_ship(self, player_board):
+        """
+        What to do when:
+        - we know that ship is in vertical position
+        - we are searching to the south
+        - square to the south ,target is 'O' - ship
+        """
+        first_hit_row, first_hit_column = self._first_ship_hit
+        row, column = self._target
+        player_board.set_square(self._target, 'X')
+        self._targetted_ship_length += 1
+        if not self._targetted_ship_first_position:
+            self._targetted_ship_first_position = self._first_ship_hit
+        if self._targetted_ship_length >= self._current_max_length:
+            self.whole_ship_found(player_board)
+            self.reset_targetted_ship()
+            new_list_of_ship_lengths = self._list_of_ship_lengths[:-1]
+            self._list_of_ship_lengths = new_list_of_ship_lengths
+        elif self._computer_board.position_in_board((row + 1, column)):
+            self._target = (row + 1, column)
+        else:
+            self.whole_ship_found(player_board)
+            self.reset_targetted_ship()
+
+    def south_targetted_sea(self, player_board):
+        """
+        What to do when:
+        - we know that ship is in vertical position
+        - we are searching to the south
+        - square to the south, target is ' ' - sea
+        """
+        player_board.set_square(self._target, '~')
+        if not self._targetted_ship_first_position:
+            self._targetted_ship_first_position = self._first_ship_hit
+        self.whole_ship_found(player_board)
+        self.reset_targetted_ship()
+
+    def south_targetted_attacked_sea(self, player_board):
+        """
+        What to do when:
+        - we know that ship is in vertical position
+        - we are searching to the south
+        - square to the south, target is '~' - attacked_sea
+        """
+        player_board.set_square(self._target, '~')
+        if not self._targetted_ship_first_position:
+            self._targetted_ship_first_position = self._first_ship_hit
+        self.whole_ship_found(player_board)
+        self.reset_targetted_ship()
+        self.guess(player_board)
+
+    def south_no_ship(self, player_board):
+        """
+        What to do when:
+        - we don't know that ship is in vertical position
+        - we are searching to the south
+        - first square to the south, target is ' ' - sea
+        """
+        first_hit_row, first_hit_column = self._first_ship_hit
+        player_board.set_square(self._target, '~')
+        if player_board.position_in_board((first_hit_row, first_hit_column + 1)) and self._targetted_ship_first_position == self._first_ship_hit:
+            self._direction_of_guessing = 'e'
+            self._target = (first_hit_row, first_hit_column + 1)
+        else:
+            self.whole_ship_found(player_board)
+            self.reset_targetted_ship()
+
+    def south_no_ship_checked(self, player_board):
+        """
+        What to do when:
+        - we don't know that ship is in vertical position
+        - we are searching to the south
+        - first square to the south, target is '~' - attacked_sea
+        """
+        first_hit_row, first_hit_column = self._first_ship_hit
+        player_board.set_square(self._target, '~')
+        if player_board.position_in_board((first_hit_row, first_hit_column + 1)) and self._targetted_ship_first_position == self._first_ship_hit:
+            self._direction_of_guessing = 'e'
+            self._target = (first_hit_row, first_hit_column + 1)
+            square = player_board.get_square((first_hit_row, first_hit_column + 1))
+            if square == 'O' or square == 'X':
+                self._targetted_ship_direction = 'e'
+                if player_board.get_square(self._target) == 'O':
+                    self.east_targetted_ship(player_board)
+                elif player_board.get_square(self._target) == ' ':
+                    self.east_targetted_sea(player_board)
+                else:
+                    self.east_targetted_attacked_sea(player_board)
+            elif square == ' ':
+                self.east_no_ship(player_board)
+            else:
+                self.east_no_ship_checked(player_board)
+        else:
+            self.whole_ship_found(player_board)
+            self.reset_targetted_ship()
+            self.guess(player_board)
+
+    def east_targetted_ship(self, player_board):
+        """
+        What to do when:
+        - we know that ship is in horizontal position
+        - we are searching to the east
+        - square to the east, target is 'O' - ship
+        """
+        first_hit_row, first_hit_column = self._first_ship_hit
+        row, column = self._target
+        player_board.set_square(self._target, 'X')
+        self._targetted_ship_length += 1
+        if not self._targetted_ship_first_position:
+            self._targetted_ship_first_position = self._first_ship_hit
+        if self._targetted_ship_length >= self._current_max_length:
+            self.whole_ship_found(player_board)
+            self.reset_targetted_ship()
+            new_list_of_ship_lengths = self._list_of_ship_lengths[:-1]
+            self._list_of_ship_lengths = new_list_of_ship_lengths
+        elif self._computer_board.position_in_board((row, column + 1)):
+            self._target = (row, column + 1)
+        else:
+            self.whole_ship_found(player_board)
+            self.reset_targetted_ship()
+
+    def east_targetted_sea(self, player_board):
+        """
+        What to do when:
+        - we know that ship is in horizontal position
+        - we are searching to the east
+        - square to the east, target is ' ' - sea
+        """
+        player_board.set_square(self._target, '~')
+        if not self._targetted_ship_first_position:
+            self._targetted_ship_first_position = self._first_ship_hit
+        self.whole_ship_found(player_board)
+        self.reset_targetted_ship()
+
+    def east_targetted_attacked_sea(self, player_board):
+        """
+        What to do when:
+        - we know that ship is in horizontal position
+        - we are searching to the east
+        - square to the east, target is '~' - attacked_sea
+        """
+        player_board.set_square(self._target, '~')
+        if not self._targetted_ship_first_position:
+            self._targetted_ship_first_position = self._first_ship_hit
+        self.whole_ship_found(player_board)
+        self.reset_targetted_ship()
+        self.guess(player_board)
+
+    def east_no_ship(self, player_board):
+        """
+        What to do when:
+        - we don't know that ship is in horizontal position
+        - we are searching to the east
+        - first square to the east, target is ' ' - sea
+        """
+        player_board.set_square(self._target, '~')
+        self.whole_ship_found(player_board)
+        self.reset_targetted_ship()
+
+    def east_no_ship_checked(self, player_board):
+        """
+        What to do when:
+        - we don't know that ship is in vertical position
+        - we are searching to the east
+        - first square to the east, target is '~' - attacked_sea
+        """
+        player_board.set_square(self._target, '~')
+        self.whole_ship_found(player_board)
+        self.reset_targetted_ship()
+        self.guess(player_board)
+
+    def guess(self, player_board):
+        if not self._target:
+            while True:
+                position = generate_position(self._computer_board.size())
+                square = player_board.get_square(position)
+                row, column = position
+                if square == 'O':
+                    self._first_ship_hit = position
+                    self._targetted_ship_first_position = position
+                    player_board.set_square(position, 'X')
+                    self._targetted_ship_length = 1
+                    if self._computer_board.position_in_board((row - 1, column)):
+                        self._targetted_ship_direction = 's'
+                        self._direction_of_guessing = 'n'
+                        self._target = (row - 1, column)
+                        return
+                    elif self._computer_board.position_in_board((row, column - 1)):
+                        self._targetted_ship_direction = 'e'
+                        self._direction_of_guessing = 'w'
+                        self._target = (row, column - 1)
+                        return
+                    else:
+                        self._targetted_ship_direction = 's'
+                        self._direction_of_guessing = 's'
+                        self._target = (row + 1, column)
+                        return
+                elif square == ' ':
+                    player_board.set_square(position, '~')
+                    self.reset_targetted_ship()
+                    return
+                else:
+                    pass
+        else:
+            first_hit_row, first_hit_column = self._first_ship_hit
+            if self._direction_of_guessing == 'n':
+                square = player_board.get_square((first_hit_row - 1, first_hit_column))
+                if square == 'O' or square == 'X':
+                    self._targetted_ship_direction = 's'
+                    if player_board.get_square(self._target) == 'O':
+                        self.north_targetted_ship(player_board)
+                    elif player_board.get_square(self._target) == ' ':
+                        self.north_targetted_sea(player_board)
+                    else:
+                        self.north_targetted_attacked_sea(player_board)
+                elif square == ' ':
+                    self.north_no_ship(player_board)
+                else:
+                    self.north_no_ship_checked(player_board)
+            elif self._direction_of_guessing == 'w':
+                square = player_board.get_square((first_hit_row, first_hit_column - 1))
+                if square == 'O' or square == 'X':
+                    self._targetted_ship_direction = 'e'
+                    if player_board.get_square(self._target) == 'O':
+                        self.west_targetted_ship(player_board)
+                    elif player_board.get_square(self._target) == ' ':
+                        self.west_targetted_sea(player_board)
+                    else:
+                        self.west_targetted_attacked_sea(player_board)
+                elif square == ' ':
+                    self.west_no_ship(player_board)
+                else:
+                    self.west_no_ship_checked(player_board)
+            elif self._direction_of_guessing == 's':
+                square = player_board.get_square((first_hit_row + 1, first_hit_column))
+                if square == 'O' or square == 'X':
+                    self._targetted_ship_direction = 's'
+                    if player_board.get_square(self._target) == 'O':
+                        self.south_targetted_ship(player_board)
+                    elif player_board.get_square(self._target) == ' ':
+                        self.south_targetted_sea(player_board)
+                    else:
+                        self.south_targetted_attacked_sea(player_board)
+                elif square == ' ':
+                    self.south_no_ship(player_board)
+                else:
+                    self.south_no_ship_checked(player_board)
+            else:
+                square = player_board.get_square((first_hit_row, first_hit_column + 1))
+                if square == 'O' or square == 'X':
+                    self._targetted_ship_direction = 'e'
+                    if player_board.get_square(self._target) == 'O':
+                        self.east_targetted_ship(player_board)
+                    elif player_board.get_square(self._target) == ' ':
+                        self.east_targetted_sea(player_board)
+                    else:
+                        self.east_targetted_attacked_sea(player_board)
+                elif square == ' ':
+                    self.east_no_ship(player_board)
+                else:
+                    self.east_no_ship_checked(player_board)
+
+    def place_ship(self, length):
+        while True:
+            try:
+                ship = generate_ship(length, self._computer_board.size())
+                self._computer_board.place_ship(ship)
+                return
+            except CanNotPlaceShipError:
+                pass
