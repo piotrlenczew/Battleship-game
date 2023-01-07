@@ -45,6 +45,10 @@ class IncorrectPositionError(Exception):
     pass
 
 
+class NegativeDimensionError(Exception):
+    pass
+
+
 # s - South, e - East
 class Ship:
     """
@@ -52,25 +56,35 @@ class Ship:
     :parametr position: tuple made up of two intigers indicating row and column
     :type position: tuple
 
-    :param direction: can only be s - South or e - East
+    :param direction: can only be s - South, e - East, n - north, w - west
     :type direction: str
 
     :param length: number of squares that form ship
     :type length: int
     """
     def __init__(self, position, direction, length):
-        try:
-            if len(position) != 2:
-                raise IncorrectPositionError('More than 2, or 1 dimension given')
-        except TypeError:
-            raise IncorrectPositionError('Only one dimension given')
-        self._position = position
-        if direction != 's' and direction != 'e':
-            message = 'Directions can only be: s - South or e - East'
+        if type(position) is int:
+            raise IncorrectPositionError('1 dimension given')
+        if len(position) != 2:
+            raise IncorrectPositionError('More than 2 dimensions given')
+        if direction == 'n':
+            row, column = position
+            position = (row - length + 1, column)
+            direction = 's'
+        elif direction == 'w':
+            row, column = position
+            position = (row, column - length + 1)
+            direction = 'e'
+        elif direction != 's' and direction != 'e':
+            message = 'Directions can only be: s - South, e - East, n - North, w - West'
             raise IncorrectDirectionError(message)
-        self._direction = direction
         if length < 1:
             raise IncorrectLengthOfShipError('Ship must have positive length')
+        row, column = position
+        if row < 0 or column < 0:
+            raise NegativeDimensionError('At least one position has negative dimension')
+        self._direction = direction
+        self._position = position
         self._length = length
 
     def position(self):
@@ -429,6 +443,7 @@ class ComputerPlayer():
         else:
             self.whole_ship_found(player_board)
             self.reset_targetted_ship()
+
 
     def north_targetted_sea(self, player_board):
         """
