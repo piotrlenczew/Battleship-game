@@ -1,4 +1,5 @@
 from classes import BattleshipBoard, Ship
+from classes import remove_ship_length_from_list_of_lengths
 from classes import (
     IncorrectSizeError,
     WrongIndicationOfSquare,
@@ -247,3 +248,30 @@ def test_place_ship_interferes_with_other_ship():
     ship2 = Ship((4, 3), 'e', 3)
     with pytest.raises(CanNotPlaceShipError):
         player_board.place_ship(ship2)
+
+
+def test_squares_around_ship():
+    player_board = BattleshipBoard(10)
+    ship = Ship((0, 0), 's', 5)
+    player_board.place_ship(ship)
+    player_board.set_squares_around_ship(ship, '~')
+    number_of_att_sea = 0
+    number_of_ship_squares = 0
+    for row in player_board.board():
+        for square in row:
+            if square == 'O':
+                number_of_ship_squares += 1
+            if square == '~':
+                number_of_att_sea += 1
+    assert number_of_ship_squares == 5
+    assert number_of_att_sea == 7
+
+
+def test_remove_ship_length_from_list_of_legths():
+    list_of_ships_length = [2,5]
+    ship_length = 5
+    list_of_ships_length = remove_ship_length_from_list_of_lengths(ship_length, list_of_ships_length)
+    assert list_of_ships_length == [2]
+    ship_length = 2
+    list_of_ships_length = remove_ship_length_from_list_of_lengths(ship_length, list_of_ships_length)
+    assert list_of_ships_length == []
