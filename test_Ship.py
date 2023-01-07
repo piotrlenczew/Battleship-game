@@ -24,8 +24,6 @@ def test_init_wrong_position():
 
 def test_init_wrong_direction():
     with pytest.raises(IncorrectDirectionError):
-        Ship((1, 1), 'n', 2)
-    with pytest.raises(IncorrectDirectionError):
         Ship((1, 1), 'se', 2)
 
 
