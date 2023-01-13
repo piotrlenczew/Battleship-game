@@ -13,6 +13,12 @@ def update_window(window, text):
     window.refresh()
 
 
+def show_not_placed_ship(window, ship):
+    for position in ship.positions():
+        row, column = position
+        window.addstr(row + 1, (2*column) + 3, 'O ')
+    window.refresh()
+
 def main(stdcsr):
     stdcsr.clear()
 
@@ -30,7 +36,7 @@ def main(stdcsr):
 
     player = Player(10, list_of_ships_length)
 
-    player_board_win = curses.newwin(12, 23, 6, 1)
+    player_board_win = curses.newwin(15, 23, 6, 1)
     update_window(player_board_win, str(player.player_board()))
 
     guess_board_win = curses.newwin(12, 23, 6, 27)
@@ -44,25 +50,42 @@ def main(stdcsr):
 
     time.sleep(1)
 
-    update_window(output_win, "Use arrows to move ship, v to rotate and x to place.")
-
     for ship_length in list_of_ships_length:
+        update_window(output_win, "Use arrows to move ship, v to rotate and x to place.")
         ship = player.place_ship(ship_length)
         update_window(player_board_win, str(player.player_board()))
         key = stdcsr.getkey()
+        if key != 'x':
+            player._player_board.remove_ship(ship)
+        board_size = player._player_board.size()
         while key != 'x':
             if key == 'KEY_LEFT':
-                ship = player.move_ship(ship, 'w')
+                update_window(player_board_win, str(player.player_board()))
+                ship.move_ship('w', board_size)
+                show_not_placed_ship(player_board_win, ship)
             elif key == 'KEY_UP':
-                ship = player.move_ship(ship, 'n')
+                update_window(player_board_win, str(player.player_board()))
+                ship.move_ship('n', board_size)
+                show_not_placed_ship(player_board_win, ship)
             elif key == 'KEY_RIGHT':
-                ship = player.move_ship(ship, 'e')
+                update_window(player_board_win, str(player.player_board()))
+                ship.move_ship('e', board_size)
+                show_not_placed_ship(player_board_win, ship)
             elif key == 'KEY_DOWN':
-                ship = player.move_ship(ship, 's')
+                update_window(player_board_win, str(player.player_board()))
+                ship.move_ship('s', board_size)
+                show_not_placed_ship(player_board_win, ship)
             elif key == 'v':
-                ship = player.rotate_ship(ship)
-            update_window(player_board_win, str(player.player_board()))
+                update_window(player_board_win, str(player.player_board()))
+                ship.rotate_ship(board_size)
+                show_not_placed_ship(player_board_win, ship)
             key = stdcsr.getkey()
+            if key == 'x':
+                if player._player_board.can_place_ship(ship):
+                    player._player_board.place_ship(ship)
+                else:
+                    update_window(output_win, "Ship can't be placed here! Try to meve it.")
+                    key = 'z'
 
     while player.player_board().has_ship() and computer.computer_board().has_ship():
         update_window(output_win, "Write position where you want to shoot: ")
