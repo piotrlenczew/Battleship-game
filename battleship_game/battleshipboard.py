@@ -182,7 +182,6 @@ class BattleshipBoard:
             for position in ship_positions:
                 self.set_square(position, ship_ind)
         else:
-            pass
             message = "Ship doesn't fit in board or interferes with other ship"
             raise CanNotPlaceShipError(message)
 
@@ -227,14 +226,14 @@ class BattleshipBoard:
 
     def remove_ship(self, ship):
         """
-        removes given ship from board
+        Changes squares where given ship would be to sea_ind
         """
         ship_positions = ship.positions()
         for position in ship_positions:
             try:
                 self.set_square(position, sea_ind)
             except PositionOutOfBoardError:
-                pass
+                raise IncorrectPositioningOfShip("Such ship can't be in board")
 
     def get_if_in_board(self, position):
         """
@@ -302,7 +301,8 @@ class BattleshipBoard:
 
     def get_ship_if_whole_sunk(self, position, max_length):
         """
-        Returns ship object if ship near or in given position is entirely sunk othervise gives None
+        Returns ship object if ship near or in given position is entirely sunk,
+        othervise gives None
         """
         first_square = self.get_square(position)
         if first_square == attacked_sea_ind:
@@ -352,11 +352,11 @@ class BattleshipBoard:
         Returns string representation of the board
         """
         result = '  '
-        for number in range(ord('A'), ord('K')):
+        for number in range(ord('A'), ord('A') + self._size):
             result = result + ' ' + chr(number)
         result = result + '\n'
         for index, row in enumerate(self._board):
-            if index == 9:
+            if index >= 9:
                 result = result + str(index + 1)
             else:
                 result = result + ' ' + str(index + 1)
