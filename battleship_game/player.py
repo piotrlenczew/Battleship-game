@@ -1,11 +1,7 @@
-from ship import Ship
+from ship import Ship, NoSuchCourseError
 from battleshipboard import BattleshipBoard, CanNotPlaceShipError
 from random import randint
 from square_indications import sea_ind, ship_ind, attacked_sea_ind, attacked_ship_ind
-
-
-class NoSuchCourseError(Exception):
-    pass
 
 
 def generate_position(board_size):
@@ -92,53 +88,6 @@ class Player():
                 computer_board.set_squares_around_ship(ship, attacked_sea_ind)
         else:
             pass
-
-    def move_ship(self, ship, course):
-        """
-        Moves given ship to given course by 1 square if able
-        """
-        self._player_board.remove_ship(ship)
-        position = ship.position()
-        row, column = position
-        direction = ship.direction()
-        length = ship.length()
-        if course == 'n':
-            new_position = (row - 1, column)
-        elif course == 'w':
-            new_position = (row, column - 1)
-        elif course == 's':
-            new_position = (row + 1, column)
-        elif course == 'e':
-            new_position = (row, column + 1)
-        else:
-            raise NoSuchCourseError('Course can only be: [n/w/e/s]')
-        new_ship = Ship(new_position, direction, length)
-        if self._player_board.can_place_ship(new_ship):
-            self._player_board.place_ship(new_ship)
-            return new_ship
-        else:
-            self._player_board.place_ship(ship)
-            return ship
-
-    def rotate_ship(self, ship):
-        """
-        Rotates ship if able
-        """
-        self._player_board.remove_ship(ship)
-        position = ship.position()
-        direction = ship.direction()
-        length = ship.length()
-        if direction == 'h':
-            new_direction = 'v'
-        else:
-            new_direction = 'h'
-        new_ship = Ship(position, new_direction, length)
-        if self._player_board.can_place_ship(new_ship):
-            self._player_board.place_ship(new_ship)
-            return new_ship
-        else:
-            self._player_board.place_ship(ship)
-            return ship
 
     def place_ship(self, length):
         """
