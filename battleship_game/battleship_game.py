@@ -1,6 +1,7 @@
 from player import Player
 from computer_player import ComputerPlayer
 from from_square_name_to_position import from_square_name_to_position
+from game_settings import board_size, list_of_ships_length
 import curses
 from curses import wrapper
 from curses.textpad import Textbox
@@ -19,27 +20,29 @@ def show_not_placed_ship(window, ship):
         window.addstr(row + 1, (2*column) + 3, 'O ')
     window.refresh()
 
+
+size = board_size
+
+
 def main(stdcsr):
     stdcsr.clear()
 
     curses.init_pair(1, curses.COLOR_RED, curses.COLOR_BLACK)
     RED_AND_BLACK = curses.color_pair(1)
-    stdcsr.addstr(1, 17, "Battleship Game", RED_AND_BLACK | curses.A_BOLD)
+    stdcsr.addstr(1, 2 * size - 1, "Battleship Game", RED_AND_BLACK | curses.A_BOLD)
 
     stdcsr.refresh()
 
-    list_of_ships_length = [1, 1, 1, 1, 2, 2, 2, 3, 3, 4]
-
-    computer = ComputerPlayer(10, list_of_ships_length)
+    computer = ComputerPlayer(size, list_of_ships_length)
     for ship_length in list_of_ships_length:
         computer.place_ship(ship_length)
 
-    player = Player(10, list_of_ships_length)
+    player = Player(size, list_of_ships_length)
 
-    player_board_win = curses.newwin(15, 23, 6, 1)
+    player_board_win = curses.newwin(size + 4, 2*size+3, 6, 1)
     update_window(player_board_win, str(player.player_board()))
 
-    guess_board_win = curses.newwin(12, 23, 6, 27)
+    guess_board_win = curses.newwin(size + 4, 2*size+3, 6, 2*size+6)
     update_window(guess_board_win, str(player.player_guess_board()))
 
     output_win = curses.newwin(1, 150, 3, 1)
