@@ -127,8 +127,6 @@ class Ship:
             raise NoSuchCourseError('Course can only be: [n/w/e/s]')
         self._position = new_position
 
-
-
     def rotate_ship(self, board_size):
         """
         Rotates ship if able
