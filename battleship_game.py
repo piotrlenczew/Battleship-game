@@ -117,7 +117,7 @@ def main(stdcsr):
                     key = get_key(stdcsr)
 
     while player.player_board().has_ship() and computer.computer_board().has_ship():
-        update_window(output_win, "Write position where you want to shoot: ")
+        update_window(output_win, "Write position where you want to shoot [A-J/1-10]: ")
         correct_square = False
         while not correct_square:
             text_box.edit()
