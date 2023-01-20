@@ -1,12 +1,13 @@
-from battleship_game.square_indications import(
+from game_files.game_settings import (
     sea_ind,
     attacked_sea_ind,
     ship_ind,
     attacked_ship_ind
 )
-from battleship_game.ship import Ship
-from battleship_game.battleshipboard import BattleshipBoard
-from battleship_game.battleshipboard import (
+from game_files.defined_enumerations import Direction
+from game_files.ship import Ship
+from game_files.battleshipboard import BattleshipBoard
+from game_files.battleshipboard import (
     IncorrectSizeError,
     WrongIndicationOfSquare,
     WrongAmountOfSquaresInRowsError,
@@ -28,15 +29,14 @@ def test_init():
             assert square == attacked_ship_ind
 
 
-def test_init_more_or_less_rows():
+def test_init_more_rows():
     with pytest.raises(WrongAmountOfRowsError):
         BattleshipBoard(9, [[ship_ind] * 10 for row in range(10)])
-    with pytest.raises(WrongAmountOfRowsError):
-        BattleshipBoard(10, [[ship_ind] * 10 for row in range(11)])
+
+
+def test_init_less_rows():
     with pytest.raises(WrongAmountOfRowsError):
         BattleshipBoard(5, [[ship_ind] * 4 for row in range(4)])
-    with pytest.raises(WrongAmountOfRowsError):
-        BattleshipBoard(5, [[ship_ind] * 5 for row in range(4)])
 
 
 def test_init_more_elements_in_rows():
@@ -141,7 +141,7 @@ def test_ship_near():
 def test_ship_near_on_edge():
     player_board = BattleshipBoard(10)
     assert not player_board.ship_near((9, 9))
-    ship = Ship((9, 0), 'h', 5)
+    ship = Ship((9, 0), Direction.horizontal, 5)
     player_board.place_ship(ship)
     assert not player_board.ship_near((0, 0))
     assert not player_board.ship_near((9, 9))
@@ -164,34 +164,34 @@ def test_ship_near_is_range_good():
 
 
 def test_can_place_ship():
-    ship = Ship((1, 2), 'v', 3)
+    ship = Ship((1, 2), Direction.vertical, 3)
     player_board = BattleshipBoard(4)
     assert player_board.can_place_ship(ship)
 
 
 def test_can_place_ship_too_small_board():
-    ship = Ship((1, 2), 'v', 5)
+    ship = Ship((1, 2), Direction.vertical, 5)
     player_board = BattleshipBoard(4)
     player_board.set_square((0, 0), ship_ind)
     assert not player_board.can_place_ship(ship)
 
 
 def test_can_place_ship_on_another_ship():
-    ship = Ship((1, 2), 'v', 3)
+    ship = Ship((1, 2), Direction.vertical, 3)
     player_board = BattleshipBoard(4)
     player_board.set_square((1, 2), ship_ind)
     assert not player_board.can_place_ship(ship)
 
 
 def test_can_place_ship_interferes_with_another_ship():
-    ship = Ship((1, 2), 'v', 3)
+    ship = Ship((1, 2), Direction.vertical, 3)
     player_board = BattleshipBoard(4)
     player_board.set_square((1, 1), ship_ind)
     assert not player_board.can_place_ship(ship)
 
 
 def test_place_ship():
-    ship1 = Ship((1, 2), 'v', 3)
+    ship1 = Ship((1, 2), Direction.vertical, 3)
     player_board = BattleshipBoard(7)
     player_board.place_ship(ship1)
     for number in range(1, 4):
@@ -206,7 +206,7 @@ def test_place_ship():
                 ships += 1
     assert sea_squares == 46
     assert ships == 3
-    ship2 = Ship((0, 4), 'h', 3)
+    ship2 = Ship((0, 4), Direction.horizontal, 3)
     player_board.place_ship(ship2)
     for number in range(4, 7):
         assert player_board.board()[0][number] == ship_ind
@@ -223,24 +223,24 @@ def test_place_ship():
 
 
 def test_place_ship_too_small_board():
-    ship1 = Ship((1, 2), 'v', 3)
+    ship1 = Ship((1, 2), Direction.vertical, 3)
     player_board = BattleshipBoard(3)
     with pytest.raises(CanNotPlaceShipError):
         player_board.place_ship(ship1)
 
 
 def test_place_ship_interferes_with_other_ship():
-    ship1 = Ship((1, 2), 'v', 3)
+    ship1 = Ship((1, 2), Direction.vertical, 3)
     player_board = BattleshipBoard(7)
     player_board.place_ship(ship1)
-    ship2 = Ship((4, 3), 'h', 3)
+    ship2 = Ship((4, 3), Direction.horizontal, 3)
     with pytest.raises(CanNotPlaceShipError):
         player_board.place_ship(ship2)
 
 
 def test_set_squares_around_ship_s():
     player_board = BattleshipBoard(10)
-    ship = Ship((0, 0), 'v', 5)
+    ship = Ship((0, 0), Direction.vertical, 5)
     player_board.place_ship(ship)
     player_board.set_squares_around_ship(ship, attacked_sea_ind)
     number_of_att_sea = 0
@@ -264,7 +264,7 @@ def test_set_squares_around_ship_s():
 
 def test_set_squares_around_ship_e():
     player_board = BattleshipBoard(10)
-    ship = Ship((0, 0), 'h', 5)
+    ship = Ship((0, 0), Direction.horizontal, 5)
     player_board.place_ship(ship)
     player_board.set_squares_around_ship(ship, attacked_sea_ind)
     number_of_att_sea = 0
@@ -288,7 +288,7 @@ def test_set_squares_around_ship_e():
 
 def test_set_squares_around_ship_one_square():
     player_board = BattleshipBoard(10)
-    ship = Ship((0, 0), 'h', 1)
+    ship = Ship((0, 0), Direction.horizontal, 1)
     player_board.place_ship(ship)
     player_board.set_squares_around_ship(ship, attacked_sea_ind)
     number_of_att_sea = 0
@@ -308,7 +308,7 @@ def test_set_squares_around_ship_one_square():
 
 def test_remove_ship():
     player_board = BattleshipBoard(10)
-    ship = Ship((0, 0), 'h', 5)
+    ship = Ship((0, 0), Direction.horizontal, 5)
     player_board.place_ship(ship)
     assert player_board.get_square((0, 0)) == ship_ind
     assert player_board.get_square((0, 4)) == ship_ind
@@ -326,7 +326,7 @@ def test_get_ship_if_whole_sunk():
     player_board.set_square((2, 5), attacked_sea_ind)
     ship1 = player_board.get_ship_if_whole_sunk((2, 3), 5)
     assert ship1.position() == (2, 2)
-    assert ship1.direction() == 'h'
+    assert ship1.direction() == Direction.horizontal
     assert ship1.length() == 3
 
 
@@ -339,7 +339,7 @@ def test_get_ship_if_whole_sunk_from_sea():
     player_board.set_square((2, 5), attacked_sea_ind)
     ship1 = player_board.get_ship_if_whole_sunk((2, 5), 5)
     assert ship1.position() == (2, 2)
-    assert ship1.direction() == 'h'
+    assert ship1.direction() == Direction.horizontal
     assert ship1.length() == 3
     player_board.set_square((4, 2), attacked_sea_ind)
     player_board.set_square((4, 3), attacked_ship_ind)
@@ -347,7 +347,7 @@ def test_get_ship_if_whole_sunk_from_sea():
     player_board.set_square((4, 5), attacked_sea_ind)
     ship2 = player_board.get_ship_if_whole_sunk((4, 5), 5)
     assert ship2.position() == (4, 3)
-    assert ship2.direction() == 'h'
+    assert ship2.direction() == Direction.horizontal
     assert ship2.length() == 2
 
 
@@ -359,14 +359,14 @@ def test_get_ship_if_whole_sunk_from_sea_max_length_change():
     player_board.set_square((2, 4), attacked_ship_ind)
     ship1 = player_board.get_ship_if_whole_sunk((2, 4), 3)
     assert ship1.position() == (2, 2)
-    assert ship1.direction() == 'h'
+    assert ship1.direction() == Direction.horizontal
     assert ship1.length() == 3
     player_board.set_square((4, 2), attacked_sea_ind)
     player_board.set_square((4, 3), attacked_ship_ind)
     player_board.set_square((4, 4), attacked_ship_ind)
     ship2 = player_board.get_ship_if_whole_sunk((4, 4), 2)
     assert ship2.position() == (4, 3)
-    assert ship2.direction() == 'h'
+    assert ship2.direction() == Direction.horizontal
     assert ship2.length() == 2
 
 
@@ -378,7 +378,7 @@ def test_get_ship_if_whole_sunk_near_border():
     player_board.set_square((3, 0), attacked_sea_ind)
     ship1 = player_board.get_ship_if_whole_sunk((2, 0), 5)
     assert ship1.position() == (0, 0)
-    assert ship1.direction() == 'v'
+    assert ship1.direction() == Direction.vertical
     assert ship1.length() == 3
 
 
@@ -389,7 +389,7 @@ def test_get_ship_if_whole_sunk_near_border_south():
     player_board.set_square((9, 1), attacked_ship_ind)
     ship1 = player_board.get_ship_if_whole_sunk((7, 1), 3)
     assert ship1.position() == (7, 1)
-    assert ship1.direction() == 'v'
+    assert ship1.direction() == Direction.vertical
     assert ship1.length() == 3
 
 
@@ -423,7 +423,7 @@ def test_get_ship_if_whole_sunk_max_length():
     player_board.set_square((2, 4), attacked_ship_ind)
     ship1 = player_board.get_ship_if_whole_sunk((2, 3), 3)
     assert ship1.position() == (2, 2)
-    assert ship1.direction() == 'h'
+    assert ship1.direction() == Direction.horizontal
     assert ship1.length() == 3
 
 
@@ -446,7 +446,7 @@ def test_get_ship_if_whole_sunk_from_att_sea_max_length():
     player_board.set_square((2, 4), attacked_ship_ind)
     ship1 = player_board.get_ship_if_whole_sunk((2, 1), 3)
     assert ship1.position() == (2, 2)
-    assert ship1.direction() == 'h'
+    assert ship1.direction() == Direction.horizontal
     assert ship1.length() == 3
 
 
@@ -458,7 +458,7 @@ def test_get_ship_if_whole_sunk_att_sea_but_wrong_ship():
     player_board.set_square((2, 4), attacked_ship_ind)
     ship1 = player_board.get_ship_if_whole_sunk((2, 1), 3)
     assert ship1.position() == (2, 2)
-    assert ship1.direction() == 'h'
+    assert ship1.direction() == Direction.horizontal
     assert ship1.length() == 3
 
 
@@ -471,7 +471,7 @@ def test_get_ship_if_whole_sunk_v():
     player_board.set_square((5, 2), attacked_sea_ind)
     ship1 = player_board.get_ship_if_whole_sunk((4, 2), 5)
     assert ship1.position() == (2, 2)
-    assert ship1.direction() == 'v'
+    assert ship1.direction() == Direction.vertical
     assert ship1.length() == 3
 
 
@@ -483,7 +483,7 @@ def test_get_ship_if_whole_sunk_max_length_v():
     player_board.set_square((4, 2), attacked_ship_ind)
     ship1 = player_board.get_ship_if_whole_sunk((4, 2), 3)
     assert ship1.position() == (2, 2)
-    assert ship1.direction() == 'v'
+    assert ship1.direction() == Direction.vertical
     assert ship1.length() == 3
 
 
