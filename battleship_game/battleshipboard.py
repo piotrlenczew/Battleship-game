@@ -1,46 +1,52 @@
-from square_indications import (
+from game_files.defined_enumerations import Direction
+from game_files.game_settings import (
     sea_ind, attacked_sea_ind, ship_ind, attacked_ship_ind
 )
-from ship import Ship
+from game_files.ship import Ship
 
 
 class WrongAmountOfRowsError(Exception):
+    """Not enough or too much rows."""
     pass
 
 
 class WrongAmountOfSquaresInRowsError(Exception):
+    """Not enough or too much squares in row."""
     pass
 
 
 class WrongIndicationOfSquare(Exception):
+    """Inappropriate square indication."""
     pass
 
 
 class MoreThanOneSymbolInSquareError(Exception):
+    """Square indication of more than one symbol."""
     pass
 
 
 class PositionOutOfBoardError(IndexError):
-    pass
-
-
-class IncorrectLengthOfShipError(Exception):
+    """Position out of board."""
     pass
 
 
 class CanNotPlaceShipError(Exception):
+    """Ship can't be placed in board."""
     pass
 
 
 class IncorrectSizeError(Exception):
+    """Inappropriate size of board."""
     pass
 
 
 class IncorrectPositioningOfShip(Exception):
+    """Ship impossible to be in board."""
     pass
 
 
 def correct_symbol_square(square):
+    """Return True if correct indication of square else False"""
     if square != sea_ind and square != attacked_sea_ind:
         if square != ship_ind and square != attacked_ship_ind:
             return False
@@ -58,6 +64,7 @@ class BattleshipBoard:
     :type board: list
     """
     def __init__(self, size, board=None):
+        """Initializeinstance of BattleshipBoard."""
         if size <= 0:
             raise IncorrectSizeError('Size needs to be positive')
         self._size = size
@@ -81,15 +88,15 @@ class BattleshipBoard:
         self._board = board
 
     def board(self):
+        """Get board attribute."""
         return self._board
 
     def size(self):
+        """Get size attribute."""
         return self._size
 
     def get_square(self, position):
-        """
-        Returns square in given position
-        """
+        """Return square in given position."""
         row, column = position
         try:
             return self._board[row][column]
@@ -99,9 +106,7 @@ class BattleshipBoard:
             raise PositionOutOfBoardError(message)
 
     def set_square(self, position, indication):
-        """
-        Allows to change square in given position to given indication
-        """
+        """Change square in given position to given indication."""
         if len(indication) != 1:
             message = 'Square can only be a single symbol'
             raise MoreThanOneSymbolInSquareError(message)
@@ -117,9 +122,7 @@ class BattleshipBoard:
             raise PositionOutOfBoardError(message)
 
     def position_in_board(self, position):
-        """
-        Checks if position is in board
-        """
+        """Check if position is in board."""
         row, column = position
         size = self._size
         if row < 0 or row > size - 1 or column < 0 or column > size - 1:
@@ -127,9 +130,7 @@ class BattleshipBoard:
         return True
 
     def has_ship(self):
-        """
-        Checks if there is any ship in board
-        """
+        """Check if there is any ship in board."""
         for row in self._board:
             for square in row:
                 if square == ship_ind:
@@ -137,9 +138,7 @@ class BattleshipBoard:
         return False
 
     def ship_near(self, position):
-        """
-        Checks if there is a ship around given point including diagonally
-        """
+        """Check if there is a ship around given point including diagonally."""
         row, column = position
         size = self._size
         if row > size - 1 or column > size - 1 or row < 0 or column < 0:
@@ -159,9 +158,7 @@ class BattleshipBoard:
         return False
 
     def can_place_ship(self, ship):
-        """
-        checks if there is possibility to place given ship in board
-        """
+        """Check if there is possibility to place given ship in board."""
         if not ship.fits_in_board(self._size):
             return False
         ship_positions = ship.positions()
@@ -174,9 +171,7 @@ class BattleshipBoard:
             return False
 
     def place_ship(self, ship):
-        """
-        Places ship in board
-        """
+        """Place ship in board."""
         if self.can_place_ship(ship):
             ship_positions = ship.positions()
             for position in ship_positions:
@@ -186,22 +181,18 @@ class BattleshipBoard:
             raise CanNotPlaceShipError(message)
 
     def set_if_in_board(self, position, indication):
-        """
-        Sets square in given position to given indication if in board
-        """
+        """Set square in given position to given indication if in board."""
         row, column = position
         if row >= 0 and column >= 0 and row < self.size() and column < self.size():
             self.set_square(position, indication)
 
     def set_squares_around_ship(self, ship, indication):
-        """
-        sets squares around given ship to given indication
-        """
+        """Set squares around given ship to given indication."""
         position = ship.position()
         row, column = position
         direction = ship.direction()
         length = ship.length()
-        if direction == 'v':
+        if direction == Direction.vertical:
             addends = [
                 (0, 1), (-1, 1), (-1, 0), (-1, -1), (0, -1),
                 (length - 1, 1), (length, 1), (length, 0),
@@ -225,9 +216,7 @@ class BattleshipBoard:
                 self.set_if_in_board((row - 1, column + number), indication)
 
     def remove_ship(self, ship):
-        """
-        Changes squares where given ship would be to sea_ind
-        """
+        """Change squares where given ship would be to sea_ind."""
         ship_positions = ship.positions()
         for position in ship_positions:
             try:
@@ -236,9 +225,7 @@ class BattleshipBoard:
                 raise IncorrectPositioningOfShip("Such ship can't be in board")
 
     def get_if_in_board(self, position):
-        """
-        Returns square indication if square in board, else None
-        """
+        """Return square indication if square in board, else None."""
         row, column = position
         try:
             return self.get_square((row, column))
@@ -248,8 +235,8 @@ class BattleshipBoard:
     def find_nearest_att_ship(self, position):
         """
         Should be used when square in given position is attacked_sea
-        Returns position of adjacent attacked_ship
-        If there isn't any returns None
+        Return position of adjacent attacked_ship
+        If there isn't any return None
         """
         row, column = position
         s_square = self.get_if_in_board((row + 1, column))
@@ -272,7 +259,8 @@ class BattleshipBoard:
 
     def one_way_ship_length_is_sunk(self, position, addends):
         """
-        Counts attacked ship squares until it finds other indication in one way
+        Counts attacked ship squares until it finds other indication in one way.
+
         if it is attacked sea returns length and True for sunk ship
         if it is sea returns length and False for not sunk ship
         if ship it returns None to indicate that it can't be sunk ship
@@ -284,7 +272,7 @@ class BattleshipBoard:
             try:
                 row += add_row
                 column += add_column
-                if row >= 0 and column >= 0:
+                if row >= 0 and column >= 0 and row < self._size and column < self._size:
                     current_square = self.get_square((row, column))
                     if current_square == attacked_ship_ind:
                         length += 1
@@ -300,10 +288,7 @@ class BattleshipBoard:
                 return (length, True)
 
     def get_ship_if_whole_sunk(self, position, max_length):
-        """
-        Returns ship object if ship near or in given position is entirely sunk,
-        othervise gives None
-        """
+        """Return ship object if ship near or in given position is entirely sunk else return None."""
         first_square = self.get_square(position)
         if first_square == attacked_sea_ind:
             new_position = self.find_nearest_att_ship(position)
@@ -319,13 +304,11 @@ class BattleshipBoard:
             return None
         elif first_square == attacked_ship_ind:
             if n_length == 0 and w_length == 0 and s_length == 0 and e_length == 0 and max_length == 1:
-                return Ship(position, 'h', 1)
-            if n_ship_sunk and w_ship_sunk and s_ship_sunk and e_ship_sunk:
-                return Ship(position, 'h', 1)
+                return Ship(position, Direction.horizontal, 1)
             elif n_length > 0 or s_length > 0:
                 ship_length = n_length + s_length + 1
                 ship_position = (row - n_length, column)
-                ship = Ship(ship_position, 'v', ship_length)
+                ship = Ship(ship_position, Direction.vertical, ship_length)
                 if n_ship_sunk and s_ship_sunk:
                     return ship
                 elif ship_length >= max_length:
@@ -335,22 +318,22 @@ class BattleshipBoard:
             elif w_length > 0 or e_length > 0:
                 ship_length = w_length + e_length + 1
                 ship_position = (row, column - w_length)
-                ship = Ship(ship_position, 'h', ship_length)
+                ship = Ship(ship_position, Direction.horizontal, ship_length)
                 if w_ship_sunk and e_ship_sunk:
                     return ship
                 elif ship_length >= max_length:
                     return ship
                 else:
                     return None
+            elif n_ship_sunk and w_ship_sunk and s_ship_sunk and e_ship_sunk:
+                return Ship(position, Direction.horizontal, 1)
             else:
                 return None
         else:
             return None
 
     def __str__(self):
-        """
-        Returns string representation of the board
-        """
+        """Return string representation of the board."""
         result = '  '
         for number in range(ord('A'), ord('A') + self._size):
             result = result + ' ' + chr(number)
